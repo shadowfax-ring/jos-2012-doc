@@ -1,0 +1,307 @@
+<title>L1: O/S overview</title>
+<html>
+<head>
+</head>
+<body>
+
+<h1>O/S overview</h1>
+
+<h2>Overview</h2>
+
+<ul>
+<li>6.828 goals:
+
+<ul>
+<li>Understand operating systems in detail by designing and
+implementing a small O/S
+<li>Hands-on experience with building systems  ("Applying 6.033")
+</ul>
+
+<li>What do applications want from an O/S?
+<ul>
+<li>Abstract the hardware for convenience and portability
+<li>Multiplex the hardware among multiple applications
+<li>Isolate applications to contain bugs
+<li>Allow sharing among applications
+</ul>
+
+<li>What is an OS?
+<ul>
+<li>e.g. OSX, Windows, Linux
+<li>the small view: a h/w management library
+<li>the big view: physical machine -> abstract one w/ better properties
+</ul>
+
+<li>Organization: layered picture
+<ul>
+<ul>
+<li>h/w: CPU, mem, disk
+<li>kernel: [various services]
+<li>user: applications, e.g. vi and gcc
+</ul>
+<li>we care a lot about the interfaces and internel kernel structure
+</ul>
+
+<li>what services does an O/S kernel typically provide?
+<ul>
+<li>processes
+<li>memory
+<li>file contents
+<li>directories and file names
+<li>security
+<li>many others: users, IPC, network, time, terminals
+</ul>
+
+<li>What does an O/S abstraction look like?
+<ul>
+<li>Applications only see them via system calls
+<li>Examples, from UNIX / Linux:
+<li><code>fd = open("out", 1);</code>
+<li><code>write(fd, "hello\n", 6);</code>
+<li><code>pid = fork();</code>
+</ul>
+
+<li>Why is O/S design/implementation hard/interesting?
+<ul>
+<li>the environment is unforgiving: weird h/w, no debugger
+<li>it must be efficient (thus low-level?)
+<li>...but abstract/portable (thus high-level?)
+<li>powerful (thus many features?)
+<li>...but simple (thus a few composable building blocks?)
+<li>features interact: <code>fd = open(); ...; fork();</code>
+<li>behaviors interact: CPU priority vs memory allocator.
+<li>open problems: security, multi-core
+</ul>
+
+<li>You'll be glad you learned about operating systems if you...
+<ul>
+<li>want to work on the above problems
+<li>care about what's going on under the hood
+<li>have to build high-performance systems
+<li>need to diagnose bugs or security problems
+</ul>
+
+</ul>
+
+<h2>Class structure</h2>
+
+<ul>
+
+<li>http://pdos.lcs.mit.edu/6.828
+<li>Lectures
+<ul>
+<li>basic O/S ideas
+<li>extended inspection of xv6, a traditional O/S
+<li>several more recent topics
+<li>in-class programming
+</ul>
+
+<li>Lab: JOS, a small O/S for x86 in an exokernel style
+<ul>
+<li>you build it, 5 labs, final project of your choice
+<li>kernel interface: expose hardware, but protect -- no abstractions!
+<li>unprivileged library: fork, exec, pipe, ...
+<li>applications: file system, shell, ..
+<li>development environment: gcc, qemu
+<li>lab 1 is out
+</ul>
+
+<li>Code review
+
+<li>One quiz: in class
+
+<li>No final, but project and project conferences
+</ul>
+
+</ul>
+
+<h2>Case study: the shell (simplified)</h2>
+
+<ul>
+<li>6.828 is largely about design and implementation of system
+call interface. let's start by looking at how programs use that
+interface. example: the Unix shell.
+<li>the shell is the Unix command UI
+<li>the shell is also a programming/scripting language
+<li>typically handles login session, runs other processes
+<li>look at some simple examples of shell operations, how they
+    use different O/S abstractions, and how those abstractions
+    fit together.
+    See <a href="../readings/ritchie78unix.pdf">Unix paper</a>
+    if you are unfamiliar with the shell.
+<li>Basic structure: see <a href="../homework/sh.c">sh.c</a>
+<li>Basic organization: parsing and executing commands (e.g., ls, ls | wc, ls > out)
+<li>Shell implemented using system calls (e.g., read, write, fork, exec, wait)
+    conventions: -1 return value signals error,
+    error code stored in <code>errno</code>,
+    <code>perror</code> prints out a descriptive error
+    message based on <code>errno</code>.
+<li>Many systems calls are encapsulated in libc calls (e.g., fgets vs read)
+<li>what does fork() do?
+    <br>copies user memory
+    <br>copies process kernel state (e.g. user id)
+    <br>child gets a different PID
+    <br>child state contains parent PID
+    <br>returns twice, with different values
+<li>what does wait() do?
+    <br>waits for any child to exit
+    <br>what if child exits before parent calls wait?
+<li>What does parscmd() do?
+<li>Example:
+<pre>
+	$ ls
+</pre>
+<li>The parse functions form a simple recursive-descent parser for the sh
+  scripting language
+  
+<li>Do exercise 1 of <a href="../homework/xv6-shell.html">shell assignment</a>
+
+<li>You need a variant of exec() (type "man 3 exec"):
+  <br>replaces memory of current process with instrs/data from file
+  <br>i.e. runs a file created by compiler/linker
+  <br>still the same process, keeps most state (e.g. user id)
+
+<li>the fork/exec split looks wasteful, but it turns out to be useful.
+
+<li>how does "ls" know which directory to look at?
+    <br>cwd in kernel-maintained process state, copied during fork
+<li>how does it know what to do with its output?
+<li>I/O: process has file descriptors, numbered starting from 0.
+    <br>index into table in process's kernel state
+<li>system calls: open, read, write, close
+
+<li>numbering conventions:
+<ul>
+<li>file descriptor 0 for input (e.g., keyboard).  fgets(stdin) invokes:
+<pre>
+     read (0, buf, bufsize)
+</pre>
+<li>file descriptor 1 for output (e.g., terminal).  fprintf(stdout) invokes:
+<pre>
+     write (1, "hello\n", strlen("hello\n"))
+</pre>
+<li>file descriptor 2 for error (e.g., terminal)
+</ul>
+<li>so ls writes output to file descriptor 1
+<li>on fork, child inherits open file descriptors from parent (show in
+    process diagram).
+<li>on exec, process retains file descriptors.
+
+<li>This shell command sends ls's output to the file out:
+<pre>
+     $ ls > out
+</pre>
+<li>Q: how could our simple shell implement output redirection?
+<li>A: Do exercise 2.
+
+<li>Good illustration of why it's nice to have separate fork and exec.
+
+<li>Many commands use 0/1 by default, so they work with redirection.  For example,
+see xv6 cat.c.
+
+<li>system call interface simple, just ints and char buffers.
+why not have open() return a pointer reference to a kernel file object?
+
+<li>Linux has a nice representation of a process and its FDs, under /proc/PID/
+<ul>
+<li>maps: VA range, perms (p=private, s=shared), offset, dev, inode, pathname
+<li>fd: symlinks to files pointed to by each fd.
+    (what's missing in this representation?)
+<li>try  <tt>exec 3>/tmp/xx ; ls -l /proc/$$/fd</tt>
+</ul>
+
+<li>One often wants to run a series of programs on some data:
+<pre>
+	$ sort < in > out
+	$ uniq out > out2
+	$ wc out2
+	$ rm out out2
+</pre>
+the shell supports this more concisely with "piping" of "filters":
+<pre>
+        $ sort < in | uniq | wc
+</pre>
+<li>A pipe is a one-way communication channel.  Here is a simple example:
+<pre>
+        int fds[2];
+        char buf[512];
+        int n;
+
+        pipe(fds);
+        write(fds[1], "hello", 5);
+        n = read(fds[0], buf, sizeof(buf));
+        // buf[] now contains 'h', 'e', 'l', 'l', 'o'
+</pre>
+<li>file descriptors are inherited across <code>fork()</code>, so this also works:
+<pre>
+        int fds[2];
+        char buf[512];
+        int n, pid;
+
+        pipe(fds);
+        pid = fork();
+        if(pid > 0){
+          write(fds[1], "hello", 5);
+        } else {
+          n = read(fds[0], buf, sizeof(buf));
+          exit(0);
+        }
+</pre>
+<li>How does the shell implement pipelines (i.e., cmd 1 | cmd 2 |..)?
+We want to arrange that the output of cmd 1 is the input of cmd 2.
+The way to achieve this goal is to manipulate stdout and stdin.
+<li>The shell creates processes for each command in
+the pipeline, hooks up their stdin and stdout,
+and waits for the last process of the
+pipeline to exit.
+
+<li>Do exercise 3.
+
+<li>Who waits for whom? (draw a tree of processes)
+
+<li>Why close read-end and write-end? ensure that
+every process starts with 3 file descriptors, and that
+reading from the pipe returns end of file after the first command exits.
+
+<li>You can run the shell, redirect its stdin/stdout, etc.
+<li>I'll run this shell script with <tt>sh < script</tt>:
+<pre>
+     echo one
+     echo two
+</pre>
+<li>Q: what will this shell command do?
+<pre>
+     $ sh < script > out
+</pre>
+<li>the script itself didn't redirect the echo output,
+but it did inherit a fd 1 that was redirected to out.
+<li>Q: I'll run the following directly; is it the same as above?
+<pre>
+     echo one > out
+     echo two > out
+</pre>
+
+<li>Notes about the file descriptor design:
+<ul>
+  <li>nice interaction with fork
+  <li>FDs help make programs more general purpose: don't need special
+      cases for files vs console vs pipe
+  <li>shell pipelines only work for programs w/ common formats (lines of text)
+</ul>
+<li>How do you create a background job?
+<pre>
+        $ sleep 2 &
+</pre>
+<li>Q: How does the shell implement "&"?
+<li>Q: What if a background process exits while sh waits for a foreground process?
+<li>Do challenge exercises
+</body>
+
+
+
+<!--  LocalWords:  Symbian JavaOS VxWorks pSOS IPC rfork min exokernel gcc CE
+ -->
+<!--  LocalWords:  bochs PalmOS PDA printf args pid perror ls buf
+ -->
+<!--  LocalWords:  bufsize strlen tmp fd
+ -->
