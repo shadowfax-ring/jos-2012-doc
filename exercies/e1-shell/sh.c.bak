@@ -66,24 +66,43 @@ runcmd(struct cmd *cmd)
 
   case '>':
   case '<':
-    rcmd = (struct redircmd*)cmd;
-	fprintf(stdout, "type: %c cmd: %s file: %s mode: %d fd: %d\n", 
+	rcmd = (struct redircmd*)cmd;
+	//fprintf(stderr, "redir not implemented\n");
+	fprintf(stdout, "type: %d cmd: %s file: %s mode: %d fd: %d\n", 
 		rcmd->type, ((struct execcmd*)(rcmd->cmd))->argv[0], 
 		rcmd->file, rcmd->mode, rcmd->fd);
-		//fprintf(stderr, "redir not implemented\n");
-		close(rcmd->fd);
-		// need to specify user mode - otherwise encounter the file permission error - stuck for a long time
-		//open(rcmd->file, rcmd->mode);
-		open(rcmd->file, rcmd->mode, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
-		runcmd(rcmd->cmd);
+	
+	close(rcmd->fd);
+	if (open(rcmd->file, rcmd->mode) < 0) {
+		fprintf(stderr, "open failed: %s\n", rcmd->file);
+		exit(0);
+	}
+	runcmd(rcmd->cmd);
+	//execv(((struct execcmd*)(rcmd->cmd))->argv[0], ((struct execcmd*)(rcmd->cmd))->argv);
     break;
 
   case '|':
     pcmd = (struct pipecmd*)cmd;
-    fprintf(stderr, "pipe not implemented\n");
-    // Your code here ...
+    //fprintf(stderr, "pipe not implemented\n");
+	//fprintf(stdout, "left: %s right: %s\n", ((struct execcmd*)(pcmd->left))->argv[0], ((struct execcmd*)(pcmd->right))->argv[0]);
+	pipe(p);
+	if (fork() == 0) {
+		close(0);
+		dup(p[0]);
+		close(p[0]);
+		close(p[1]);
+		runcmd(pcmd->right);
+	}
+	else {
+		close(1);
+		dup(p[1]);
+		close(p[0]);
+		close(p[1]);
+		runcmd(pcmd->left);
+	}
+	wait(&r);
     break;
-  }    
+  }
   exit(0);
 }
 
