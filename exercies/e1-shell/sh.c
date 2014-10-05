@@ -67,9 +67,9 @@ runcmd(struct cmd *cmd)
   case '>':
   case '<':
     rcmd = (struct redircmd*)cmd;
-	fprintf(stdout, "type: %c cmd: %s file: %s mode: %d fd: %d\n", 
-		rcmd->type, ((struct execcmd*)(rcmd->cmd))->argv[0], 
-		rcmd->file, rcmd->mode, rcmd->fd);
+	//fprintf(stdout, "type: %c cmd: %s file: %s mode: %d fd: %d\n", 
+		//rcmd->type, ((struct execcmd*)(rcmd->cmd))->argv[0], 
+		//rcmd->file, rcmd->mode, rcmd->fd);
 		//fprintf(stderr, "redir not implemented\n");
 		close(rcmd->fd);
 		// need to specify user mode - otherwise encounter the file permission error - stuck for a long time
