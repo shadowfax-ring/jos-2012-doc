@@ -1,0 +1,5 @@
+Exercise 1 - shell
+Took me several hours to make them correct. Finally realize it's not easy to fully understand how process & pipe works
+1. When creating a new file in a child process, it's better to explicitly specify the mode for the file
+2. It's important to close the file descriptor of write in pipe when the read starts
+3. Need to specify the full path of exec file such as /bin/ls and /usr/bin/wc. The exercise shell does not give error msg when a cmd does not exist.

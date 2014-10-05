@@ -80,8 +80,30 @@ runcmd(struct cmd *cmd)
 
   case '|':
     pcmd = (struct pipecmd*)cmd;
-    fprintf(stderr, "pipe not implemented\n");
-    // Your code here ...
+    //fprintf(stderr, "pipe not implemented\n");
+	//fprintf(stdout, "left: %s right: %s\n", ((struct execcmd*)(pcmd->left))->argv[0], ((struct execcmd*)(pcmd->right))->argv[0]);
+	if (pipe(p) < 0) {
+		fprintf(stderr, "create pipe failure\n");
+	}
+	if (fork() == 0) {
+		close(1);
+		dup(p[1]);
+		runcmd(pcmd->left);
+		close(p[0]);
+		close(p[1]);
+	}
+	if (fork() == 0) {
+		close(0);
+		dup(p[0]);
+		close(p[0]);
+		// ensure no new data will arrive before read
+		close(p[1]);
+		runcmd(pcmd->right);
+	}
+	close(p[0]);
+	close(p[1]);
+	wait(&r);
+	wait(&r);
     break;
   }    
   exit(0);
