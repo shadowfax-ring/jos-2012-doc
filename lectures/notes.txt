@@ -1,7 +1,22 @@
-Lecture 2
+== Lecture 2 ==
 1. Assembly convention - Intel Syntax vs AT&T Syntax
 2. Difference among Memory-mapped I/O, Port-mapped I/O and Dedicated I/O
 
-Lecture 6
+== Lecture 6 ==
 1. xchg operation
+An example of spin lock
+spin_lock:
+mov eax, 1
+xchg eax, [lock_var]	// atomically swap eax register with lock variable
+test eax, eax			// if it's previosly unlocked, zero flag will set
+jnz spin_lock			// if it's previously locked, go to the very beginning
+ret
+
+spin_unlock:
+move eax, 0
+xchg eax, [lock_var]	// atomically swap and set 0 to lock variable
+ret
+
 2. pushcli and popcli
+cli - instruction used to disable interrupts and does not disable on other processors
+sti - instruction used to enable interrupts by setting the IF flag
