@@ -2,4 +2,6 @@ Lecture 2
 1. Assembly convention - Intel Syntax vs AT&T Syntax
 2. Difference among Memory-mapped I/O, Port-mapped I/O and Dedicated I/O
 
-
+Lecture 6
+1. xchg operation
+2. pushcli and popcli
