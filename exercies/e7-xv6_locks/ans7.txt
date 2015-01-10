@@ -1,0 +1,26 @@
+Don't do this
+Make sure you understand what would happen if the kernel executed the following code snippet:
+
+  struct spinlock lk;
+  initlock(&lk, "test lock");
+  acquire(&lk);
+  acquire(&lk);
+
+Acquire the lock twice will cause the kernel halt, a dead lock.
+e.g., by acquiring twice in ide.c, we got below failure.
+cpu1: panic: acquire
+ 80104f7a 80102759 80106a91 801066ed 80105004 80104b15 80103878 80103833 705a 0
+
+Race in ide.c
+Explain in a few sentences why the kernel panicked. You may find it useful to look up the stack trace (the sequence of %eip values printed by panic) in the kernel.asm listing.
+Interrupt is not disabled, and there are two ide request coming. Request A comes first and hold the idelock, and then request B also comes since interrupt is not disabled. And it also tries to hold the idelock.
+e.g.,
+cpu1: panic: acquire
+ 80104f7e 80102755 80106a95 801066f1 801028c9 801001e6 8010133c 80103259 80104c44 801066f4
+
+Race in file.c
+Explain in a few sentences why the kernel didn't panic. Why do file_table_lock and ide_lock have different behavior in this respect?
+You do not need to understand anything about the details of the IDE hardware to answer this question, but you may find it helpful to look at which functions acquire each lock, and then at when those functions get called.
+
+xv6 lock implementation
+Why does release() clear lk->pcs[0] and lk->cpu before clearing lk->locked? Why not wait until after?
